@@ -54,7 +54,20 @@ const initialTasks: Task[] = [
 export function TaskList() {
   const [tasks, setTasks] = useState(initialTasks);
 
-  // Helper function to toggle subtask completion
+  // Recursive function to count completed subtasks
+  const countCompleted = (subtasks: Subtask[]): { completed: number; total: number } => {
+    const total = subtasks.length;
+    const completed = subtasks.filter((subtask) => {
+      if (subtask.subtasks) {
+        // Check nested subtasks
+        return subtask.isComplete || countCompleted(subtask.subtasks).completed === subtask.subtasks.length;
+      }
+      return subtask.isComplete;
+    }).length;
+    return { completed, total };
+  };
+
+  // Recursive function to toggle completion of subtasks and sub-subtasks
   const toggleSubtaskCompletion = (subtasks: Subtask[], subtaskId: string): Subtask[] => {
     return subtasks.map((subtask) => {
       if (subtask.id === subtaskId) {
@@ -66,7 +79,7 @@ export function TaskList() {
             : undefined,
         };
 
-        // Automatically mark subtask as complete if all its sub-subtasks are complete
+        // Automatically mark as complete if all sub-subtasks are completed
         if (updatedSubtask.subtasks) {
           const allSubSubtasksComplete = updatedSubtask.subtasks.every(
             (subSubtask) => subSubtask.isComplete
@@ -84,13 +97,6 @@ export function TaskList() {
         };
       }
     });
-  };
-
-  // Helper function to count completed subtasks
-  const countCompleted = (subtasks: Subtask[]) => {
-    const total = subtasks.length;
-    const completed = subtasks.filter((subtask) => subtask.isComplete).length;
-    return `${completed}/${total}`;
   };
 
   // Toggle root task completion
@@ -117,85 +123,96 @@ export function TaskList() {
       <div>
         <h2 className="text-xl font-bold">Active Tasks</h2>
         <AnimatePresence>
-          {activeTasks.map((task) => (
-            <motion.div
-              key={task.id}
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 50 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Card className="border shadow-sm mb-4">
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold">
-                    {task.title} ({countCompleted(task.subtasks)})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>{task.description}</p>
-                  <Accordion type="single" collapsible className="mt-4">
-                    {task.subtasks.map((subtask) => (
-                      <AccordionItem key={subtask.id} value={subtask.id}>
-                        <AccordionTrigger>
-                          {subtask.title} ({countCompleted(subtask.subtasks || [])})
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          {subtask.subtasks ? (
-                            <ul className="list-disc list-inside">
-                              {subtask.subtasks.map((subSubtask) => (
-                                <li
-                                  key={subSubtask.id}
-                                  className="flex items-center justify-between"
-                                >
-                                  <span
-                                    className={
-                                      subSubtask.isComplete
-                                        ? "line-through text-gray-500"
-                                        : ""
-                                    }
-                                  >
-                                    {subSubtask.title}
-                                  </span>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() =>
-                                      setTasks((prevTasks) =>
-                                        prevTasks.map((task) =>
-                                          task.id === task.id
-                                            ? {
-                                                ...task,
-                                                subtasks: toggleSubtaskCompletion(
-                                                  task.subtasks,
-                                                  subSubtask.id
-                                                ),
-                                              }
-                                            : task
-                                        )
-                                      )
-                                    }
-                                  >
-                                    {subSubtask.isComplete ? "Undo" : "Complete"}
-                                  </Button>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-gray-600">No subtasks available.</p>
-                          )}
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </CardContent>
-                <CardFooter>
-                  <Button onClick={() => toggleTaskCompletion(task.id)}>
-                    {task.isComplete ? "Mark as Incomplete" : "Mark as Complete"}
-                  </Button>
-                </CardFooter>
-              </Card>
-            </motion.div>
-          ))}
+          {activeTasks.map((task) => {
+            const { completed, total } = countCompleted(task.subtasks);
+            return (
+              <motion.div
+                key={task.id}
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 50 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="border shadow-sm mb-4">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-semibold">
+                      {task.title} ({completed}/{total})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p>{task.description}</p>
+                    <Accordion type="single" collapsible className="mt-4">
+                      {task.subtasks.map((subtask) => {
+                        const { completed, total } = countCompleted(
+                          subtask.subtasks || []
+                        );
+                        return (
+                          <AccordionItem key={subtask.id} value={subtask.id}>
+                            <AccordionTrigger>
+                              {subtask.title} ({completed}/{total})
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              {subtask.subtasks ? (
+                                <ul className="list-disc list-inside">
+                                  {subtask.subtasks.map((subSubtask) => (
+                                    <li
+                                      key={subSubtask.id}
+                                      className="flex items-center justify-between"
+                                    >
+                                      <span
+                                        className={
+                                          subSubtask.isComplete
+                                            ? "line-through text-gray-500"
+                                            : ""
+                                        }
+                                      >
+                                        {subSubtask.title}
+                                      </span>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                          setTasks((prevTasks) =>
+                                            prevTasks.map((task) =>
+                                              task.id === task.id
+                                                ? {
+                                                    ...task,
+                                                    subtasks:
+                                                      toggleSubtaskCompletion(
+                                                        task.subtasks,
+                                                        subSubtask.id
+                                                      ),
+                                                  }
+                                                : task
+                                            )
+                                          )
+                                        }
+                                      >
+                                        {subSubtask.isComplete ? "Undo" : "Complete"}
+                                      </Button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-gray-600">
+                                  No subtasks available.
+                                </p>
+                              )}
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                    </Accordion>
+                  </CardContent>
+                  <CardFooter>
+                    <Button onClick={() => toggleTaskCompletion(task.id)}>
+                      {task.isComplete ? "Mark as Incomplete" : "Mark as Complete"}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
       </div>
 
@@ -214,7 +231,8 @@ export function TaskList() {
               <Card className="border shadow-sm bg-gray-100 mb-4">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold">
-                    {task.title} ({countCompleted(task.subtasks)})
+                    {task.title} ({countCompleted(task.subtasks).completed}/
+                    {countCompleted(task.subtasks).total})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
