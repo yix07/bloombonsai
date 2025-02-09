@@ -1,21 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation"; // ✅ Import useRouter for navigation
+import { useRouter } from "next/navigation"; 
 import { WalletDefault } from "@coinbase/onchainkit/wallet";
 import { TaskList } from "@/components/TaskList";
 import { ethers } from "ethers";
 import { getContract } from "@/lib/taskBonsaiNFT";
-import { useAccount, useWalletClient } from "wagmi"; // ✅ Import wagmi hooks
+import { useAccount, useWalletClient } from "wagmi";
 
 export default function Home() {
   const [minting, setMinting] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter(); // ✅ Initialize useRouter
+  const router = useRouter(); 
 
-  const { address, isConnected } = useAccount(); // ✅ Get connected wallet address
-  const { data: walletClient } = useWalletClient(); // ✅ Get wallet client from WalletConnect
+  const { address, isConnected } = useAccount(); 
+  const { data: walletClient } = useWalletClient(); 
 
   const mintNFT = async () => {
     try {
@@ -27,18 +27,15 @@ export default function Home() {
       setError(null);
       setTxHash(null);
 
-      // ✅ Use wagmi to create an ethers provider from the WalletConnect client
       const provider = new ethers.BrowserProvider(walletClient as any);
       const signer = await provider.getSigner();
       const contract = await getContract(signer);
 
-      // ✅ Convert `bigint` to `number` before comparing
       const network = await provider.getNetwork();
       if (Number(network.chainId) !== 84532) {
         throw new Error("Switch to Base Sepolia in Coinbase Wallet.");
       }
 
-      // Convert "Hello, World!" to a hash for metadata storage
       const metadataHash = ethers.keccak256(ethers.toUtf8Bytes("Hello, World!"));
 
       // Send the mint transaction
@@ -46,7 +43,6 @@ export default function Home() {
       setTxHash(tx.hash);
       console.log("Transaction Sent:", tx.hash);
 
-      // Wait for confirmation
       await tx.wait();
       console.log("NFT Minted!");
 

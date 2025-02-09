@@ -8,7 +8,7 @@ const TreeSchema = new Schema({
   treeId: {
     type: String,
     required: true,
-    unique: true,  
+    unique: true, 
   },
   species: {
     type: String,
@@ -16,7 +16,7 @@ const TreeSchema = new Schema({
   },
   growthStage: {
     type: String,
-    default: 'Seed', 
+    default: '1', 
   },
   row: {
     type: Number,
@@ -35,7 +35,7 @@ const TreeSchema = new Schema({
     required: true, 
   },
 }, {
-  timestamps: true,
+  timestamps: true, 
 });
 
 const Tree = models.Tree || model('Tree', TreeSchema);

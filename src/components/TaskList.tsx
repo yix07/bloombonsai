@@ -10,21 +10,23 @@ import {
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { Task, Subtask } from "@/types/types";
 
-type Subtask = {
-  id: string;
-  title: string;
-  isComplete: boolean;
-  subtasks?: Subtask[];
-};
 
-type Task = {
-  id: string;
-  title: string;
-  description: string;
-  isComplete: boolean;
-  subtasks: Subtask[];
-};
+// type Subtask = {
+//   id: string;
+//   title: string;
+//   isComplete: boolean;
+//   subtasks?: Subtask[];
+// };
+
+// type Task = {
+//   id: string;
+//   title: string;
+//   description: string;
+//   isComplete: boolean;
+//   subtasks: Subtask[];
+// };
 
 const initialTasks: Task[] = [
   {
@@ -59,7 +61,6 @@ export function TaskList() {
     const total = subtasks.length;
     const completed = subtasks.filter((subtask) => {
       if (subtask.subtasks) {
-        // Check nested subtasks
         return subtask.isComplete || countCompleted(subtask.subtasks).completed === subtask.subtasks.length;
       }
       return subtask.isComplete;
@@ -79,7 +80,6 @@ export function TaskList() {
             : undefined,
         };
 
-        // Automatically mark as complete if all sub-subtasks are completed
         if (updatedSubtask.subtasks) {
           const allSubSubtasksComplete = updatedSubtask.subtasks.every(
             (subSubtask) => subSubtask.isComplete
@@ -99,7 +99,6 @@ export function TaskList() {
     });
   };
 
-  // Toggle root task completion
   const toggleTaskCompletion = (taskId: string) => {
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
@@ -113,7 +112,6 @@ export function TaskList() {
     );
   };
 
-  // Separate active and completed tasks
   const activeTasks = tasks.filter((task) => !task.isComplete);
   const completedTasks = tasks.filter((task) => task.isComplete);
 
@@ -254,6 +252,7 @@ export function TaskList() {
     </div>
   );
 }
+
 
 
 
