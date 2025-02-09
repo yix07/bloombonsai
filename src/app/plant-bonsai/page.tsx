@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import OpenAI from "openai";
-import { Task, Subtask } from "@/types/types";
+import { Task, Subtask, ModelID } from "@/types/types";
 import { WalletDefault } from "@coinbase/onchainkit/wallet";
 import { useAccount, useWalletClient } from "wagmi";
 import { ethers } from "ethers";
 import { getContract } from "@/lib/taskBonsaiNFT";
 import crypto from "crypto";
+import { motion } from "framer-motion";
+import { useGrid } from "@/app/context/gridContext"; // Adjust the path as needed
 
 export default function PlantBonsai() {
   const [taskName, setTaskName] = useState("");
@@ -19,8 +21,10 @@ export default function PlantBonsai() {
   const [txHash, setTxHash] = useState<string | null>(null);
   const router = useRouter();
 
+  const { grid, setGrid } = useGrid(); // Access grid and setGrid
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,9 +38,16 @@ export default function PlantBonsai() {
       setError("Please connect your wallet to plant a Bonsai.");
       return;
     }
-
+    
+    const provider = new ethers.BrowserProvider(walletClient as any);
+    const signer = await provider.getSigner();
+    const contract = await getContract(signer);
     setLoading(true);
     setError(null);
+
+    const nftCount = await getNFTCount(contract, address+"");
+    console.log(`The owner has ${nftCount} NFTs.`);
+
 
     try {
       const prompt = 
@@ -129,14 +140,14 @@ Task: ${taskName} ${description.trim() ? description : ""}.`; // Use your prompt
       console.log("AI Response:", response);
     
       // Convert AI response to Task Tree
-      const taskTree = parseAIResponseToTaskTree(response);
+      const taskTree = parseAIResponseToTaskTree(response, nftCount);
       console.log("Transformed Task Tree:", taskTree);
 
       const treeId = generateTaskTreeHash(taskTree);
 
       console.log(treeId);
 
-      const newCoords = getNewCoords();
+      const newCoords = getNewCoords(grid);
       const newTree = {
         owner: address, // Replace with actual owner ID
         treeId: treeId,
@@ -158,11 +169,21 @@ Task: ${taskName} ${description.trim() ? description : ""}.`; // Use your prompt
       });
   
       const dbData = await dbResponse.json();
-      console.log("Database Response:", dbData);
+      // console.log("Database Response:", dbData);
+
   
       if (!dbData.success) {
         throw new Error("Failed to save the tree to the database.");
       } else {
+        setGrid((prevGrid) => {
+          const updatedGrid = [...prevGrid];
+          updatedGrid[newCoords.row][newCoords.col] = {
+            specimen: newTree.species,
+            stage: newTree.growthStage,
+          };
+          return updatedGrid;
+        });
+  
         setMinting(true);
         const provider = new ethers.BrowserProvider(walletClient as any);
         const signer = await provider.getSigner();
@@ -181,7 +202,9 @@ Task: ${taskName} ${description.trim() ? description : ""}.`; // Use your prompt
   
         // Wait for confirmation
         await tx.wait();
-        console.log("NFT Minted!");  
+        console.log("NFT Minted!"); 
+
+        router.push("/garden")
       }
   
       // // Update state with the new task tree
@@ -194,59 +217,104 @@ Task: ${taskName} ${description.trim() ? description : ""}.`; // Use your prompt
   };
 
   return (
-    <div className="relative min-h-screen bg-gray-50">
-      {/* Wallet Connection Info */}
+    <motion.div
+      // Fade in from top
+      initial={{ opacity: 0, y: -40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8 }}
+      className="relative min-h-screen bg-[#FFE8B6]"
+    >
+      {/* Wallet Button (top-right) */}
       <div className="absolute top-4 right-4">
-        <div className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+        <div className="inline-flex items-center justify-center text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700">
           <WalletDefault />
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main container for the title, form, error, home icon */}
       <div className="flex flex-col items-center justify-center min-h-screen gap-8">
-        <h1 className="text-2xl font-semibold">Plant a New Bonsai</h1>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4 w-1/3">
+        {/* Title */}
+        <h1 className="text-5xl font-bold">
+          {/* “Plant Your New” in peach */}
+          <span className="text-[#D99D81]">Plant Your New </span>
+
+          {/* Bonsai in green, plus the icon, aligned baseline */}
+          <span className="text-[#5B913B] inline-flex items-baseline gap-2">
+            Bonsai
+            {/* New bonsai icon - same color #5B913B; sized for text alignment */}
+            <img
+              src="https://img.icons8.com/?size=100&id=6JR0q1kBwLyy&format=png&color=5B913B"
+              alt="Bonsai Icon"
+              style={{
+                width: "1em",
+                height: "1em",
+                marginBottom: "-0.1em", // optional nudge
+              }}
+            />
+          </span>
+        </h1>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-1/3">
           <input
             type="text"
             placeholder="Task Name"
             value={taskName}
             onChange={(e) => setTaskName(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg"
+            className="px-4 py-2 rounded-lg border-2 border-[#D99D81] focus:outline-none focus:border-[#77B254]"
           />
           <textarea
             placeholder="Description (Optional)"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg"
-          ></textarea>
+            className="px-4 py-2 h-24 rounded-lg border-2 border-[#D99D81] focus:outline-none focus:border-[#77B254]"
+          />
           <button
             type="submit"
-            disabled={loading || !isConnected} // Disable button if loading or not connected
-            className={`px-6 py-3 rounded-lg text-white ${
+            disabled={loading || !isConnected}
+            className={`px-6 py-3 rounded-lg font-semibold text-white transition-colors ${
               loading || !isConnected
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-green-600 hover:bg-green-700"
+                ? "bg-[#D99D81] cursor-not-allowed"
+                : "bg-[#77B254] hover:bg-[#5B913B]"
             }`}
           >
             {loading ? "Planting..." : "Plant Bonsai"}
           </button>
         </form>
-        {error && <p className="mt-4 text-red-500">⚠️ {error}</p>}
-        <button
+
+        {error && (
+          <p className="mt-2 text-sm font-semibold text-red-600">⚠️ {error}</p>
+        )}
+
+        {/* Home icon with a bolder outline in #D99D81, animate on hover */}
+        <motion.button
           onClick={() => router.push("/")}
-          className="mt-4 text-blue-600 underline"
+          whileHover={{ scale: 1.1, y: -2 }}
+          transition={{ type: "spring", stiffness: 300 }}
         >
-          Back to Home
-        </button>
+          <svg
+            width="52"
+            height="52"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#D99D81"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {/* A bolder house path */}
+            <path d="M3 9.75l9-7.5 9 7.5V21a1 1 0 01-1 1H4a1 1 0 01-1-1V9.75z" />
+            <path d="M9 22V12h6v10" />
+          </svg>
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
-
-
 }
 
+/* ------------------ Helper Functions -------------------- */
 
-function parseAIResponseToTaskTree(aiResponse: any): Task {
+function parseAIResponseToTaskTree(aiResponse: any, count: any): Task {
   // Extract the main task from the AI response
   const mainTask = aiResponse.choices[0].message.content;
   const cleanedJsonString = mainTask
@@ -270,12 +338,12 @@ function parseAIResponseToTaskTree(aiResponse: any): Task {
 
   // Main task transformation
   return {
-    id: "1",
+    id: count,
     title: parsedTask.task,
     description: "",
     isComplete: false,
     subtasks: parsedTask.subtasks.map((subtask: any, index: any) =>
-      convertToSubtask(subtask, "1", index + 1)
+      convertToSubtask(subtask, count, index + 1)
     ),
   };
 }
@@ -291,10 +359,43 @@ function generateTaskTreeHash(taskTree: any) {
 }
 
 //TODO: search and return empty spot on grid
-function getNewCoords() {
-  return {"row": 0, "col": 0};
+function getNewCoords(grid: (ModelID | null)[][]): { row: number; col: number } {
+  console.log(grid)
+  const emptySpots: { row: number; col: number }[] = [];
+
+  // Find all empty spots
+  grid.forEach((row, rowIndex) => {
+    row.forEach((cell, colIndex) => {
+      if (cell === null) {
+        emptySpots.push({ row: rowIndex, col: colIndex });
+      }
+    });
+  });
+
+  if (emptySpots.length === 0) {
+    throw new Error("No empty spots available on the grid.");
+  }
+
+  // Pick a random empty spot
+  const randomIndex = Math.floor(Math.random() * emptySpots.length);
+  return emptySpots[randomIndex];
 }
 
+
 function randomSpecimen() {
-  return "Willow";
+  return "ashtree";
+}
+
+
+async function getNFTCount(contract: any, ownerAddress: string): Promise<number> {
+  try {
+    if (!contract) throw new Error("Contract instance is required");
+
+    // Call the balanceOf function
+    const balance = await contract.balanceOf(ownerAddress);
+    return Number(balance); // Convert from BigNumber to a regular number
+  } catch (error) {
+    console.error("Error fetching NFT count:", error);
+    throw error;
+  }
 }

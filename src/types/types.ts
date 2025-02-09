@@ -12,4 +12,9 @@ export type Subtask = {
     isComplete: boolean;
     subtasks: Subtask[];
   };
+
+  export type ModelID = {
+    specimen: string;
+    stage: any;
+  };
   
