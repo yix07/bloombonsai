@@ -225,8 +225,8 @@ Task: ${taskName} ${description.trim() ? description : ""}.`; // Use your prompt
       className="relative min-h-screen bg-[#FFE8B6]"
     >
       {/* Wallet Button (top-right) */}
-      <div className="absolute top-4 right-4">
-        <div className="inline-flex items-center justify-center text-sm font-medium text-white bg-[#5B913B] rounded hover:bg-green-700">
+      <div className="absolute top-4 right-4 w-40">
+        <div className="overflow-hidden bg-green-600 rounded-md hover:bg-green-700">
           <WalletDefault />
         </div>
       </div>
@@ -243,7 +243,7 @@ Task: ${taskName} ${description.trim() ? description : ""}.`; // Use your prompt
             Bonsai
             {/* New bonsai icon - same color #5B913B; sized for text alignment */}
             <img
-              src="https://img.icons8.com/?size=100&id=6JR0q1kBwLyy&format=png&color=5B913B"
+              src="https://img.icons8.com/?size=100&id=NbTixWMtHl74&format=png&color=5B913B"
               alt="Bonsai Icon"
               style={{
                 width: "1em",

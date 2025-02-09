@@ -22,8 +22,8 @@ export default function Home() {
   return (
     <div className="relative min-h-screen bg-[#FFE8B6]">
       {/* Wallet button (top-right) */}
-      <div className="absolute top-4 right-4">
-        <div className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
+      <div className="absolute top-4 right-4 w-40">
+        <div className="overflow-hidden bg-green-600 rounded-md hover:bg-green-700">
           <WalletDefault />
         </div>
       </div>
