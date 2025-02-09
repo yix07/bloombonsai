@@ -226,7 +226,7 @@ Task: ${taskName} ${description.trim() ? description : ""}.`; // Use your prompt
     >
       {/* Wallet Button (top-right) */}
       <div className="absolute top-4 right-4">
-        <div className="inline-flex items-center justify-center text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700">
+        <div className="inline-flex items-center justify-center text-sm font-medium text-white bg-[#5B913B] rounded hover:bg-green-700">
           <WalletDefault />
         </div>
       </div>
